@@ -45,9 +45,21 @@ public class ShopService {
         return expenses.save(new Expense(expenses.nextId(), when, title, amount, category));
     }
 
+    public List<Product> allProducts() {
+        return products.findAll();
+    }
+
     // Products screen: items flagged "Low stock"
     public List<Product> lowStockProducts() {
         return products.findAll().stream().filter(Product::isLowStock).toList();
+    }
+
+    public List<Sale> allSales() {
+        return salesGroupedByDay().values().stream().flatMap(List::stream).toList();
+    }
+
+    public List<Expense> allExpenses() {
+        return expenses.findAll();
     }
 
     // Sales screen: "Today" / "Yesterday" groups, newest day first

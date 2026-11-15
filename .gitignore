@@ -1,0 +1,7 @@
+.gradle/
+build/
+out/
+*.iml
+.idea/
+.devin/*.local.json
+app/node_modules/
