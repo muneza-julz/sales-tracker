@@ -1,11 +1,12 @@
 import { getSalesByDay } from '@/api';
 import type { Sale, SalesByDay } from '@/api/types';
+import { AlertDialog } from '@/components/AlertDialog';
 import { Icon } from '@/components/Icon';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { colors, fonts, radius } from '@/theme';
 import { formatMoney } from '@/utils/format';
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -22,12 +23,14 @@ export default function SalesScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    getSalesByDay()
-      .then(setDays)
-      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
-      .finally(() => setLoading(false));
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      getSalesByDay()
+        .then(setDays)
+        .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
+        .finally(() => setLoading(false));
+    }, [])
+  );
 
   if (loading) {
     return (
@@ -70,8 +73,9 @@ export default function SalesScreen() {
 }
 
 function SaleCard({ sale }: { sale: Sale }) {
+  const [detailOpen, setDetailOpen] = useState(false);
   return (
-    <View style={styles.card}>
+    <Pressable style={styles.card} onPress={() => setDetailOpen(true)}>
       <View style={styles.thumb}>
         <Icon name="tabProducts" color="#BDBDBD" width={34} height={38} />
       </View>
@@ -85,7 +89,13 @@ function SaleCard({ sale }: { sale: Sale }) {
         <Text style={styles.time}>{formatTime(sale.timestamp)}</Text>
       </View>
       <Text style={styles.amount}>{formatMoney(sale.amount)}</Text>
-    </View>
+      <AlertDialog
+        visible={detailOpen}
+        title={sale.productName}
+        message={`${sale.quantity} × ${formatMoney(sale.unitPrice)} = ${formatMoney(sale.amount)}\nGross profit: ${formatMoney(sale.grossProfit)}\n${sale.paymentMethod === 'CASH' ? 'Cash' : 'Mobile Money'} · ${formatTime(sale.timestamp)}`}
+        onClose={() => setDetailOpen(false)}
+      />
+    </Pressable>
   );
 }
 

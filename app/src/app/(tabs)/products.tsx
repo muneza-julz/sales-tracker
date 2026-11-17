@@ -1,11 +1,12 @@
 import { getProducts } from '@/api';
 import type { Product } from '@/api/types';
+import { AlertDialog } from '@/components/AlertDialog';
 import { Icon } from '@/components/Icon';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { colors, fonts, radius } from '@/theme';
 import { formatMoney } from '@/utils/format';
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -22,12 +23,14 @@ export default function ProductsScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    getProducts()
-      .then(setProducts)
-      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
-      .finally(() => setLoading(false));
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      getProducts()
+        .then(setProducts)
+        .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
+        .finally(() => setLoading(false));
+    }, [])
+  );
 
   if (loading) {
     return (
@@ -66,8 +69,9 @@ export default function ProductsScreen() {
 }
 
 function ProductCard({ product }: { product: Product }) {
+  const [detailOpen, setDetailOpen] = useState(false);
   return (
-    <View style={styles.card}>
+    <Pressable style={styles.card} onPress={() => setDetailOpen(true)}>
       <View style={styles.thumb}>
         <Icon name="tabProducts" color="#BDBDBD" width={44} height={48} />
       </View>
@@ -82,7 +86,13 @@ function ProductCard({ product }: { product: Product }) {
         )}
       </View>
       <Icon name="more" color="#000" width={8} height={28} />
-    </View>
+      <AlertDialog
+        visible={detailOpen}
+        title={product.name}
+        message={`Category: ${product.category}\nCost: ${formatMoney(product.costPrice)}\nSelling: ${formatMoney(product.sellingPrice)}\nStock: ${product.stock}${product.lowStock ? ' (low)' : ''}`}
+        onClose={() => setDetailOpen(false)}
+      />
+    </Pressable>
   );
 }
 

@@ -1,11 +1,12 @@
 import { getExpenses } from '@/api';
 import type { Expense, ExpenseCategory } from '@/api/types';
+import { AlertDialog } from '@/components/AlertDialog';
 import { Icon } from '@/components/Icon';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { colors, fonts, radius } from '@/theme';
 import { formatMoney } from '@/utils/format';
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -29,12 +30,14 @@ export default function ExpensesScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    getExpenses()
-      .then(setExpenses)
-      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
-      .finally(() => setLoading(false));
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      getExpenses()
+        .then(setExpenses)
+        .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
+        .finally(() => setLoading(false));
+    }, [])
+  );
 
   if (loading) {
     return (
@@ -74,8 +77,9 @@ export default function ExpensesScreen() {
 }
 
 function ExpenseRow({ expense }: { expense: Expense }) {
+  const [detailOpen, setDetailOpen] = useState(false);
   return (
-    <View style={styles.row}>
+    <Pressable style={styles.row} onPress={() => setDetailOpen(true)}>
       <View style={styles.iconCircle}>
         <Icon name={CATEGORY_ICONS[expense.category]} color="#fff" width={30} height={28} />
       </View>
@@ -85,7 +89,13 @@ function ExpenseRow({ expense }: { expense: Expense }) {
       </View>
       <Text style={styles.amount}>−{formatMoney(expense.amount)}</Text>
       <Icon name="more" color="#000" width={8} height={28} />
-    </View>
+      <AlertDialog
+        visible={detailOpen}
+        title={expense.title}
+        message={`Category: ${expense.category}\nAmount: ${formatMoney(expense.amount)}\nDate: ${formatDate(expense.timestamp)}`}
+        onClose={() => setDetailOpen(false)}
+      />
+    </Pressable>
   );
 }
 

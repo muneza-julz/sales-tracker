@@ -1,12 +1,14 @@
 import { getSummary, getWeeklySummary } from '@/api';
 import type { Summary } from '@/api/types';
+import { AlertDialog } from '@/components/AlertDialog';
 import { Icon } from '@/components/Icon';
 import { colors, fonts, radius } from '@/theme';
 import { formatMoney } from '@/utils/format';
-import { router } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -22,33 +24,36 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notifyOpen, setNotifyOpen] = useState(false);
 
   const fetchData = useCallback(
     () => Promise.all([getSummary(), getWeeklySummary()]),
     []
   );
 
-  useEffect(() => {
-    let cancelled = false;
-    fetchData()
-      .then(([summary, weekly]) => {
-        if (cancelled) return;
-        setToday(summary);
-        setWeek(weekly);
-        setError(null);
-      })
-      .catch((e) => {
-        if (!cancelled) {
-          setError(e instanceof Error ? e.message : 'Failed to load summary');
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [fetchData]);
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      fetchData()
+        .then(([summary, weekly]) => {
+          if (cancelled) return;
+          setToday(summary);
+          setWeek(weekly);
+          setError(null);
+        })
+        .catch((e) => {
+          if (!cancelled) {
+            setError(e instanceof Error ? e.message : 'Failed to load summary');
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setLoading(false);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }, [fetchData])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -94,7 +99,9 @@ export default function HomeScreen() {
           <Text style={styles.shopName}>My Shop</Text>
           <Text style={styles.date}>{formatDate(today.date)}</Text>
         </View>
-        <Icon name="headerIcon" color="#000" width={20} height={20} />
+        <Pressable onPress={() => setNotifyOpen(true)} hitSlop={12}>
+          <Icon name="headerIcon" color="#000" width={20} height={20} />
+        </Pressable>
       </View>
 
       {/* Stat cards */}
@@ -143,6 +150,12 @@ export default function HomeScreen() {
           onPress={() => router.push('/add-expenses')}
         />
       </View>
+      <AlertDialog
+        visible={notifyOpen}
+        title="Notifications"
+        message="Notifications are not available yet."
+        onClose={() => setNotifyOpen(false)}
+      />
     </ScrollView>
   );
 }
@@ -187,13 +200,13 @@ function ActionButton({
   onPress: () => void;
 }) {
   return (
-    <View
+    <Pressable
       style={[styles.actionButton, filled ? styles.actionFilled : styles.actionOutline]}
-      onTouchEnd={onPress}
+      onPress={onPress}
     >
       <Icon name={icon} width={16} height={14} />
       <Text style={[styles.actionLabel, filled && styles.actionLabelFilled]}>{label}</Text>
-    </View>
+    </Pressable>
   );
 }
 
